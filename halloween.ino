@@ -16,7 +16,69 @@ int upDuration = 2000;
 int downDuration = 2000;
 
 void handleRoot() {
-  server.send(200, "text/plain", "Hello from ESP8266!");
+  String page = R"HTML(<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skeleton settings</title>
+  <style>
+    body { font-family: sans-serif; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin: 1rem 0; }
+    input { display: block; box-sizing: border-box; width: 100%; padding: .5rem; }
+    button { padding: .5rem 1rem; }
+    #response { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Skeleton settings</h1>
+  <p>All times are in milliseconds.</p>
+  <form id="settings" action="/update" method="post">
+    <label>Base delay
+      <input type="number" name="baseDelay" value="%BASE_DELAY%" min="0" max="3600000" step="1" required>
+    </label>
+    <label>Random delay
+      <input type="number" name="randDelay" value="%RAND_DELAY%" min="1" max="3600000" step="1" required>
+    </label>
+    <label>Up duration
+      <input type="number" name="upDuration" value="%UP_DURATION%" min="1000" max="5000" step="1" required>
+    </label>
+    <label>Down duration
+      <input type="number" name="downDuration" value="%DOWN_DURATION%" min="1000" max="5000" step="1" required>
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+  <p id="response" role="status" aria-live="polite"></p>
+  <script>
+    const form = document.getElementById('settings');
+    const output = document.getElementById('response');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button');
+      button.disabled = true;
+      output.textContent = 'Applying...';
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new URLSearchParams(new FormData(form))
+        });
+        const message = await response.text();
+        output.textContent = response.ok ? message : 'Update failed: ' + message;
+      } catch (error) {
+        output.textContent = 'Could not apply settings: ' + error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>)HTML";
+  page.replace("%BASE_DELAY%", String(baseDelay));
+  page.replace("%RAND_DELAY%", String(randDelay));
+  page.replace("%UP_DURATION%", String(upDuration));
+  page.replace("%DOWN_DURATION%", String(downDuration));
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "text/html; charset=utf-8", page);
 }
 
 int getIntArg(const String& name, int min, int max) {
@@ -27,30 +89,31 @@ int getIntArg(const String& name, int min, int max) {
 }
 
 void handleIntUpdates() {
-  String updated ("Updated the following values: ");
+  String updated ("Updated the following values:  ");
   int newValue = getIntArg("baseDelay", 0, 3'600'000);
-  if (newValue != -1) {
+  if (newValue != -1 && newValue != baseDelay) {
     baseDelay = newValue;
     updated += "base delay, ";
   }
 
   newValue = getIntArg("randDelay", 1, 3'600'000);
-  if (newValue != -1) {
+  if (newValue != -1 && newValue != randDelay) {
     randDelay = newValue;
     updated += "random delay, ";
   }
 
   newValue = getIntArg("upDuration", 1000, 5000);
-  if (newValue != -1) {
+  if (newValue != -1 && newValue != upDuration) {
     upDuration = newValue;
     updated += "up duration, ";
   }
 
   newValue = getIntArg("downDuration", 1000, 5000);
-  if (newValue != -1) {
+  if (newValue != -1 && newValue != downDuration) {
     downDuration = newValue;
     updated += "down duration, ";
   }
+  updated.remove(updated.length() - 2, 2);
   server.send(200, "text/plain", updated);
 }
 

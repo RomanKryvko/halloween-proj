@@ -3,7 +3,6 @@
 #include <Servo.h>
 #include <random>
 #include <time.h>
-#include <SPI.h>
 
 enum class SkeletonState {
   START = 0,
