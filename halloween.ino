@@ -7,6 +7,14 @@
 ESP8266WebServer server(80);
 Skeleton skeleton;
 
+int lastState = -1;
+int stateCounter = 0;
+
+int baseDelay = 1500;
+int randDelay = 1500;
+int upDuration = 2000;
+int downDuration = 2000;
+
 void handleRoot() {
   server.send(200, "text/plain", "Hello from ESP8266!");
 }
@@ -28,18 +36,16 @@ void setup() {
   server.begin();
 }
 
-int last = -1;
-int counter = 0;
 void loop() {
   server.handleClient();
-  skeleton.move();
+  skeleton.move(upDuration, downDuration, baseDelay, randDelay);
   int cur_state = (int) skeleton.get_state();
-  if (last != cur_state) {
-    Serial.println((std::to_string(cur_state) + ": " + std::to_string(counter) + " iterations").c_str());
-    last = cur_state;
-    counter = 0;
+  if (lastState != cur_state) {
+    Serial.println((std::to_string(cur_state) + ": " + std::to_string(stateCounter) + " iterations").c_str());
+    lastState = cur_state;
+    stateCounter = 0;
   } else {
-    counter++;
+    stateCounter++;
   }
 }
 

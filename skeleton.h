@@ -24,14 +24,13 @@ private:
   SkeletonState state = SkeletonState::START;
   Servo servo;
   int currentMicros = 2300;
-  int sleepStart = -1;
+  unsigned long stateStart = -1;
   int curDelay = baseDelay;
 
   static const int flashTotal = 6;
   int flashCount = 0;
-  unsigned long flashStart = 0;
   bool flashOn = true;
-  static const int flashDuration = 200;
+  static const int flashDuration = 300;
   
   unsigned long lastMove;
   static const unsigned long moveIntervalMs = 50;
@@ -49,7 +48,15 @@ public:
     return state;
   }
 
-  void move() {
+  void restart() {
+    state = SkeletonState::START;
+    curDelay = 0;
+    stateStart = -1;
+    flashCount = 0;
+    flashOn = true;
+  }
+
+  void move(int upDur, int downDur, int newBaseDelay, int newRandDelay) {
     auto now = millis();
     if (now - lastMove < moveIntervalMs) {
       return;
@@ -57,22 +64,31 @@ public:
     lastMove = now;
 
     switch (state) {
-      case SkeletonState::START:
+      case SkeletonState::START: {
         digitalWrite(ledPin, HIGH);
         state = SkeletonState::MOV_UP;
         break;
+      }
 
-      case SkeletonState::MOV_UP:
+      case SkeletonState::MOV_UP: {
+        const int stepTime = upDur / (downMicros - upMicros);
         if (currentMicros > upMicros) {
-          servo.writeMicroseconds(currentMicros);
-          currentMicros -= 20;
+          if (now - stateStart >= stepTime) {
+            servo.writeMicroseconds(currentMicros);
+            currentMicros -= 20;
+            stateStart = now;
+          } else {
+            delay(50);
+          }
         } else {
+          stateStart = -1;
           state = SkeletonState::FLASH;
         }
         break;
+      }
 
-      case SkeletonState::FLASH:
-        if (now - flashStart >= flashDuration) {
+      case SkeletonState::FLASH: {
+        if (now - stateStart >= flashDuration) {
           if (flashCount < flashTotal) {
             flashCount++;
             flashOn = !flashOn;
@@ -80,35 +96,48 @@ public:
           } else {
             flashCount = 0;
             digitalWrite(ledPin, LOW);
+            stateStart = -1;
             state = SkeletonState::MOV_DOWN;
           }
-          flashStart = now;
+          stateStart = now;
         } else {
           delay(50);
         }
         break;
+      }
 
-      case SkeletonState::MOV_DOWN:
+      case SkeletonState::MOV_DOWN: {
+        const int stepTime = downDur / (downMicros - upMicros);
         if (currentMicros < downMicros) {
-          servo.writeMicroseconds(currentMicros);
-          currentMicros += 20;
+           if (now - stateStart >= stepTime) {
+            servo.writeMicroseconds(currentMicros);
+            currentMicros += 20;
+            stateStart = now;
+          } else {
+            delay(50);
+          }
         } else {
+          stateStart = -1;
           state = SkeletonState::SLEEP;
         }
         break;
+      }
 
-      case SkeletonState::SLEEP:
-        if (sleepStart == -1) {
-          sleepStart = now;
+      case SkeletonState::SLEEP: {
+        if (stateStart == -1 || newBaseDelay != baseDelay || newRandDelay != randDelay) {
+          stateStart = now;
+          baseDelay = newBaseDelay;
+          randDelay = newRandDelay;
           curDelay = baseDelay + random() % randDelay;
         }
-        if (now < sleepStart + curDelay) {
+        if (now < stateStart + curDelay) {
           delay(50);
         } else {
-          sleepStart = -1;
+          stateStart = -1;
           state = SkeletonState::START;
         }
         break;
+      }
     }
   }
 };
