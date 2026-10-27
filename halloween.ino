@@ -19,6 +19,41 @@ void handleRoot() {
   server.send(200, "text/plain", "Hello from ESP8266!");
 }
 
+int getIntArg(const String& name, int min, int max) {
+  if (server.hasArg(name)) {
+    return constrain(server.arg(name).toInt(), min, max);
+  }
+  return -1;
+}
+
+void handleIntUpdates() {
+  String updated ("Updated the following values: ");
+  int newValue = getIntArg("baseDelay", 0, 3'600'000);
+  if (newValue != -1) {
+    baseDelay = newValue;
+    updated += "base delay, ";
+  }
+
+  newValue = getIntArg("randDelay", 1, 3'600'000);
+  if (newValue != -1) {
+    randDelay = newValue;
+    updated += "random delay, ";
+  }
+
+  newValue = getIntArg("upDuration", 1000, 5000);
+  if (newValue != -1) {
+    upDuration = newValue;
+    updated += "up duration, ";
+  }
+
+  newValue = getIntArg("downDuration", 1000, 5000);
+  if (newValue != -1) {
+    downDuration = newValue;
+    updated += "down duration, ";
+  }
+  server.send(200, "text/plain", updated);
+}
+
 void setup() {
   skeleton = Skeleton(D4, D2);
   Serial.begin(9600);
@@ -33,13 +68,14 @@ void setup() {
   printWifiStatus();
 
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/update", HTTP_POST, handleIntUpdates);
   server.begin();
 }
 
 void loop() {
   server.handleClient();
   skeleton.move(upDuration, downDuration, baseDelay, randDelay);
-  int cur_state = (int) skeleton.get_state();
+  int cur_state = (int)skeleton.get_state();
   if (lastState != cur_state) {
     Serial.println((std::to_string(cur_state) + ": " + std::to_string(stateCounter) + " iterations").c_str());
     lastState = cur_state;

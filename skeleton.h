@@ -3,6 +3,7 @@
 #include <Servo.h>
 #include <random>
 #include <time.h>
+#include <SPI.h>
 
 enum class SkeletonState {
   START = 0,
@@ -32,7 +33,7 @@ private:
   bool flashOn = true;
   static const int flashDuration = 300;
   
-  unsigned long lastMove;
+  unsigned long lastMove = 0;
   static const unsigned long moveIntervalMs = 50;
 
 public:
@@ -57,7 +58,7 @@ public:
   }
 
   void move(int upDur, int downDur, int newBaseDelay, int newRandDelay) {
-    auto now = millis();
+    const auto now = millis();
     if (now - lastMove < moveIntervalMs) {
       return;
     }
@@ -66,24 +67,22 @@ public:
     switch (state) {
       case SkeletonState::START: {
         digitalWrite(ledPin, HIGH);
+        stateStart = now;
         state = SkeletonState::MOV_UP;
         break;
       }
 
       case SkeletonState::MOV_UP: {
-        const int stepTime = upDur / (downMicros - upMicros);
-        if (currentMicros > upMicros) {
-          if (now - stateStart >= stepTime) {
-            servo.writeMicroseconds(currentMicros);
-            currentMicros -= 20;
-            stateStart = now;
-          } else {
-            delay(50);
-          }
-        } else {
-          stateStart = -1;
+        const unsigned long elapsed = now - stateStart;
+        if (upDur <= 0 || elapsed >= static_cast<unsigned long>(upDur)) {
+          currentMicros = upMicros;
+          stateStart = now;
           state = SkeletonState::FLASH;
+        } else {
+          currentMicros = downMicros -
+              (downMicros - upMicros) * elapsed / upDur;
         }
+        servo.writeMicroseconds(currentMicros);
         break;
       }
 
@@ -107,19 +106,16 @@ public:
       }
 
       case SkeletonState::MOV_DOWN: {
-        const int stepTime = downDur / (downMicros - upMicros);
-        if (currentMicros < downMicros) {
-           if (now - stateStart >= stepTime) {
-            servo.writeMicroseconds(currentMicros);
-            currentMicros += 20;
-            stateStart = now;
-          } else {
-            delay(50);
-          }
-        } else {
+        const unsigned long elapsed = now - stateStart;
+        if (downDur <= 0 || elapsed >= static_cast<unsigned long>(downDur)) {
+          currentMicros = downMicros;
           stateStart = -1;
           state = SkeletonState::SLEEP;
+        } else {
+          currentMicros = upMicros +
+              (downMicros - upMicros) * elapsed / downDur;
         }
+        servo.writeMicroseconds(currentMicros);
         break;
       }
 
