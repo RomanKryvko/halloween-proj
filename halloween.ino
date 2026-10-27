@@ -1,66 +1,46 @@
-#include <Servo.h>
-#include <random>
-#include <time.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <SPI.h>
 #include "pwd.h"
-
-Servo servo;
-const int start = 2300; // down
-const int fin = 1400;   // up
-const int baseDelay = 1500;
-const int randDelay = 1000;
+#include "skeleton.h"
 
 ESP8266WebServer server(80);
+Skeleton skeleton;
+
 void handleRoot() {
   server.send(200, "text/plain", "Hello from ESP8266!");
 }
+
 void setup() {
-  servo.attach(D4, 500, 2500);
-  pinMode(D2, OUTPUT);
-  servo.writeMicroseconds(start);
-  srandom(time(0));
-  
+  skeleton = Skeleton(D4, D2);
   Serial.begin(9600);
-  
+
   WiFi.begin(SSID, PWD);
   while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
+    delay(500);
   }
   while (!Serial) {
     delay(500);
   }
   printWifiStatus();
-  
+
   server.on("/", HTTP_GET, handleRoot);
   server.begin();
 }
 
+int last = -1;
+int counter = 0;
 void loop() {
   server.handleClient();
-
-  digitalWrite(D2, HIGH);
-
-  for (int i = start; i > fin; i -= 20) {
-    servo.writeMicroseconds(i);
-    delay(50);
+  skeleton.move();
+  int cur_state = (int) skeleton.get_state();
+  if (last != cur_state) {
+    Serial.println((std::to_string(cur_state) + ": " + std::to_string(counter) + " iterations").c_str());
+    last = cur_state;
+    counter = 0;
+  } else {
+    counter++;
   }
-
-  for (int i = 0; i < 3; i++) {
-    digitalWrite(D2, LOW);
-    delay(200);
-    digitalWrite(D2, HIGH);
-    delay(200);
-  }
-  digitalWrite(D2, LOW);
-
-  for (int i = fin; i < start; i += 20) {
-    servo.writeMicroseconds(i);
-    delay(50);
-  }
-
-  delay(baseDelay + random() % randDelay);
 }
 
 void printWifiStatus() {
