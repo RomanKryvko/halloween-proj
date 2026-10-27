@@ -50,15 +50,16 @@ void handleRoot() {
     <label>Down duration <i>(min: 1000, max: 5000)</i>
       <input type="number" name="downDuration" value="%DOWN_DURATION%" min="1000" max="5000" step="1" required>
     </label>
-    <button type="submit">Apply</button>
+    <button id="formbutton" type="submit">Apply</button>
   </form>
+  <button id="raisebtn" onclick="raise">Raise</button>
   <p id="response" role="status" aria-live="polite"></p>
   <script>
     const form = document.getElementById('settings');
     const output = document.getElementById('response');
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const button = form.querySelector('button');
+      const button = document.getElementById('formbutton');
       button.disabled = true;
       output.textContent = 'Applying...';
       try {
@@ -74,6 +75,18 @@ void handleRoot() {
         button.disabled = false;
       }
     });
+    const raise = () => {
+      const button = document.getElementById('raisebtn');
+      button.disabled = true;
+      try {
+        const response = await fetch("/raise", { method: 'POST' });
+        output.textContent = response.ok ? message : 'Operation failed: ' + message;
+      } catch (error) {
+        output.textContent = 'Could not apply settings: ' + error.message;
+      } finally  {
+        button.disabled = false;
+      }
+    };
   </script>
 </body>
 </html>)HTML";
@@ -121,6 +134,11 @@ void handleIntUpdates() {
   server.send(200, "text/plain", updated);
 }
 
+void handleRaise() {
+  skeleton.restart();
+  server.send(200, "text/plain", "Restarted skeleton loop.");
+}
+
 void setup() {
   skeleton = Skeleton(D4, D2);
   Serial.begin(9600);
@@ -150,6 +168,7 @@ void setup() {
 
   server.on("/", HTTP_GET, handleRoot);
   server.on("/update", HTTP_POST, handleIntUpdates);
+  server.on("/raise", HTTP_POST, handleRaise);
   server.begin();
 }
 
