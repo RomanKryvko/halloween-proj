@@ -1,11 +1,15 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
 #include <SPI.h>
-#include "pwd.h"
 #include "skeleton.h"
 
 ESP8266WebServer server(80);
 Skeleton skeleton;
+
+const char SSID[] = "skelenet";
+const char PWD[] = "1234567890";
+const char DOMAIN[] = "skeleton";
 
 int lastState = -1;
 int stateCounter = 0;
@@ -120,14 +124,28 @@ void handleIntUpdates() {
 void setup() {
   skeleton = Skeleton(D4, D2);
   Serial.begin(9600);
-
-  WiFi.begin(SSID, PWD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-  }
   while (!Serial) {
     delay(500);
   }
+
+  bool result = WiFi.softAP(SSID, PWD);
+  if(result == true) {
+    Serial.println("AP ready");
+  } else {
+    Serial.println("AP failed");
+    while (1);
+  }
+  
+  if (MDNS.begin(DOMAIN, WiFi.softAPIP())) {
+    MDNS.addService("http", "tcp", 80);
+    Serial.print("Set up MDNS: http://");
+    Serial.print(DOMAIN);
+    Serial.println(".local");
+  } else {
+    Serial.println("Error setting up MDNS responder!");
+    while (1);
+  }
+
   printWifiStatus();
 
   server.on("/", HTTP_GET, handleRoot);
@@ -136,6 +154,7 @@ void setup() {
 }
 
 void loop() {
+  MDNS.update();
   server.handleClient();
   skeleton.move(upDuration, downDuration, baseDelay, randDelay);
   int cur_state = (int)skeleton.get_state();
@@ -150,11 +169,9 @@ void loop() {
 
 void printWifiStatus() {
   Serial.println();
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
 
   Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.softAPIP());
 
   Serial.print("Signal strength (RSSI): ");
   Serial.print(WiFi.RSSI());

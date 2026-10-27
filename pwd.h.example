@@ -1,5 +1,0 @@
-#pragma once
-
-const char SSID[] = "my-wifi";
-const char PWD[] = "my-password";
-
