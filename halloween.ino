@@ -38,16 +38,16 @@ void handleRoot() {
   <h1>Skeleton settings</h1>
   <p>All times are in milliseconds.</p>
   <form id="settings" action="/update" method="post">
-    <label>Base delay
+    <label>Base delay <i>(min: 0, max: 3600000)</i>
       <input type="number" name="baseDelay" value="%BASE_DELAY%" min="0" max="3600000" step="1" required>
     </label>
-    <label>Random delay
+    <label>Random delay <i>(min: 0, max: 3600000)</i>
       <input type="number" name="randDelay" value="%RAND_DELAY%" min="1" max="3600000" step="1" required>
     </label>
-    <label>Up duration
+    <label>Up duration <i>(min: 1000, max: 5000)</i>
       <input type="number" name="upDuration" value="%UP_DURATION%" min="1000" max="5000" step="1" required>
     </label>
-    <label>Down duration
+    <label>Down duration <i>(min: 1000, max: 5000)</i>
       <input type="number" name="downDuration" value="%DOWN_DURATION%" min="1000" max="5000" step="1" required>
     </label>
     <button type="submit">Apply</button>
