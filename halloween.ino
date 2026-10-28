@@ -41,7 +41,7 @@ void handleRoot() {
     <label>Base delay <i>(min: 0, max: 3600000)</i>
       <input type="number" name="baseDelay" value="%BASE_DELAY%" min="0" max="3600000" step="1" required>
     </label>
-    <label>Random delay <i>(min: 0, max: 3600000)</i>
+    <label>Random delay <i>(min: 1, max: 3600000)</i>
       <input type="number" name="randDelay" value="%RAND_DELAY%" min="1" max="3600000" step="1" required>
     </label>
     <label>Up duration <i>(min: 1000, max: 5000)</i>
@@ -52,7 +52,7 @@ void handleRoot() {
     </label>
     <button id="formbutton" type="submit">Apply</button>
   </form>
-  <button id="raisebtn" onclick="raise">Raise</button>
+  <button id="raisebtn" type="button">Raise</button>
   <p id="response" role="status" aria-live="polite"></p>
   <script>
     const form = document.getElementById('settings');
@@ -75,18 +75,20 @@ void handleRoot() {
         button.disabled = false;
       }
     });
-    const raise = () => {
+    document.getElementById('raisebtn').addEventListener('click', async () => {
       const button = document.getElementById('raisebtn');
       button.disabled = true;
+      output.textContent = 'Raising...';
       try {
         const response = await fetch("/raise", { method: 'POST' });
+        const message = await response.text();
         output.textContent = response.ok ? message : 'Operation failed: ' + message;
       } catch (error) {
-        output.textContent = 'Could not apply settings: ' + error.message;
+        output.textContent = 'Could not raise skeleton: ' + error.message;
       } finally  {
         button.disabled = false;
       }
-    };
+    });
   </script>
 </body>
 </html>)HTML";
