@@ -18,8 +18,8 @@ private:
   static const int downMicros = 2300;
   
   int ledPin;
-  int baseDelay = 1500;
-  int randDelay = 1500;
+  int baseDelay = 60'000;
+  int randDelay = 60'000;
 
   SkeletonState state = SkeletonState::START;
   Servo servo;

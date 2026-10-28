@@ -14,8 +14,8 @@ const char DOMAIN[] = "skeleton";
 int lastState = -1;
 int stateCounter = 0;
 
-int baseDelay = 1500;
-int randDelay = 1500;
+int baseDelay = 60'000;
+int randDelay = 60'000;
 int upDuration = 2000;
 int downDuration = 2000;
 
